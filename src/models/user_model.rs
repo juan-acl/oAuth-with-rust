@@ -1,4 +1,4 @@
-use diesel::prelude::*;
+use diesel::prelude::Queryable;
 
 #[derive(Queryable)]
 pub struct User {

@@ -1,6 +1,15 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    session (id) {
+        id -> Nullable<Integer>,
+        user_id -> Integer,
+        token -> Text,
+        token_valid -> Bool,
+    }
+}
+
+diesel::table! {
     user (id) {
         id -> Nullable<Integer>,
         name -> Text,
@@ -11,3 +20,8 @@ diesel::table! {
         password -> Text,
     }
 }
+
+diesel::allow_tables_to_appear_in_same_query!(
+    session,
+    user,
+);

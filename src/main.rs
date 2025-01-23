@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 use actix_web::{web, App, HttpServer};
+use std::env;
 
 mod db;
 mod handlers;
@@ -17,7 +18,13 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(pool.clone()))
             .configure(routes::user_routes::main_routes_users)
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind((
+        env::var("BASE_URL").expect("BASE_URL debe estar configurada en .env"),
+        env::var("PORT")
+            .expect("PORT debe estar configurado en .env")
+            .parse()
+            .unwrap(),
+    ))?
     .run()
     .await
 }

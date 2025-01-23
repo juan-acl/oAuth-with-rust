@@ -7,6 +7,7 @@ mod handlers;
 mod models;
 mod routes;
 mod schema;
+mod utils;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -14,7 +15,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(pool.clone()))
-            .configure(routes::get_all_users)
+            .configure(routes::user_routes::main_routes_users)
     })
     .bind(("127.0.0.1", 8080))?
     .run()

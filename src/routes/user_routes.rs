@@ -1,6 +1,7 @@
-use crate::handlers::user_handler::get_all_users;
+use crate::handlers::user_handler::{create_user, get_all_users};
 use actix_web::web;
 
-pub fn get_all_users_routes(cfg: &mut web::ServiceConfig) {
+pub fn main_routes_users(cfg: &mut web::ServiceConfig) {
     cfg.route("/users", web::get().to(get_all_users));
+    cfg.route("/users", web::post().to(create_user));
 }

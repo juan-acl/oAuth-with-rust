@@ -27,6 +27,6 @@ pub struct NewUser {
     pub address: String,
     #[validate(length(min = 1))]
     pub phone_number: String,
-    #[validate(length(min = 1))]
+    #[validate(length(min = 1, message = "La contraseña no puede estar vacía"))]
     pub password: String,
 }

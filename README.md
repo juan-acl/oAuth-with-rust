@@ -21,3 +21,8 @@ Para utilizar **Diesel** como ORM y configurar las tablas correctamente cuando s
      diesel migration run
      ```
    - Esto completa la migración y crea las tablas en la base de datos.
+
+# Manejo de errores con serde y validator para request
+Cuando utilizamos **serde** este por defecto trae manejo de errores del body, por ejemplo si un campo no esta definido o el tipo de dato no corresponde con la estructura.
+
+Sin embargo **validator** nos permite agregar mas validaciones o reglas dentro de la estrucutra por ejemplo cantidad minica un longitud exacta

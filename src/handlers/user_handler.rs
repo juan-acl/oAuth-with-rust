@@ -1,6 +1,5 @@
 use crate::models::user_model::{NewUser, User};
 use crate::schema::user::dsl::*;
-use crate::utils::validator::fields_validator;
 use crate::{db::db::DbPool, models::response_model::ApiResponse};
 use actix_web::{web, HttpResponse, Responder};
 use diesel::result::Error as DieselError;
@@ -42,11 +41,6 @@ pub async fn create_user(pool: web::Data<DbPool>, new_user: web::Json<NewUser>) 
             500,
             "Error al obtener el pool de conexiones".to_string(),
         ));
-    }
-
-    if let Err(errors) = fields_validator(&*new_user) {
-        return HttpResponse::BadRequest()
-            .json(ApiResponse::<()>::error(400, errors.join(", ").to_string()));
     }
 
     let mut connection = conn.unwrap();

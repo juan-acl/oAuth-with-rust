@@ -12,6 +12,8 @@ mod utils;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    dotenv::dotenv().ok();
+    env_logger::init();
     let pool = db::db::establish_connection();
     HttpServer::new(move || {
         App::new()

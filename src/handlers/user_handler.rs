@@ -2,8 +2,10 @@ use crate::models::user_model::{NewUser, User};
 use crate::schema::user::dsl::*;
 use crate::{db::db::DbPool, models::response_model::ApiResponse};
 use actix_web::{web, HttpResponse, Responder};
+use diesel::query_dsl::methods::FilterDsl;
 use diesel::result::Error as DieselError;
-use diesel::RunQueryDsl;
+use diesel::{ExpressionMethods, RunQueryDsl};
+use validator::Validate;
 
 pub async fn get_all_users(pool: web::Data<DbPool>) -> impl Responder {
     let conn = pool.get();
@@ -34,7 +36,28 @@ pub async fn get_all_users(pool: web::Data<DbPool>) -> impl Responder {
 }
 
 pub async fn create_user(pool: web::Data<DbPool>, new_user: web::Json<NewUser>) -> impl Responder {
-    print!("Entro el el modulo de creacion de usuario");
+    if let Err(errors) = new_user.validate() {
+        let error_messages: Vec<String> = errors
+            .field_errors()
+            .iter()
+            .flat_map(|(field, errors)| {
+                errors.iter().map(move |error| {
+                    format!(
+                        "{}: {}",
+                        field,
+                        error
+                            .message
+                            .clone()
+                            .unwrap_or_else(|| "Error desconocido".to_string().into())
+                    )
+                })
+            })
+            .collect();
+
+        return HttpResponse::BadRequest()
+            .json(ApiResponse::<()>::error(400, error_messages.join(", ")));
+    }
+
     let conn = pool.get();
     if conn.is_err() {
         return HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
@@ -45,6 +68,17 @@ pub async fn create_user(pool: web::Data<DbPool>, new_user: web::Json<NewUser>) 
 
     let mut connection = conn.unwrap();
 
+    let user_exist: Result<Vec<User>, DieselError> = user
+        .filter(email.eq(new_user.email.clone()))
+        .load(&mut connection);
+
+    if user_exist.is_ok() && user_exist.unwrap().len() > 0 {
+        return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
+            400,
+            "El usuario ya existe".to_string(),
+        ));
+    }
+
     let result = diesel::insert_into(user)
         .values(new_user.into_inner())
         .execute(&mut connection);
@@ -52,7 +86,7 @@ pub async fn create_user(pool: web::Data<DbPool>, new_user: web::Json<NewUser>) 
     match result {
         Ok(_) => HttpResponse::Ok().json(ApiResponse::<()>::success(
             200,
-            "Usuario Creado satisfactoriamente".to_string(),
+            "Usuario creado satisfactoriamente".to_string(),
             (),
         )),
         Err(e) => {

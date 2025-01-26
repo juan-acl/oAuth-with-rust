@@ -98,3 +98,48 @@ pub async fn create_user(pool: web::Data<DbPool>, new_user: web::Json<NewUser>) 
         }
     }
 }
+
+pub async fn delete_user(pool: web::Data<DbPool>, user_id: web::Path<i32>) -> impl Responder {
+    let conn = pool.get();
+    if conn.is_err() {
+        return HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+            500,
+            "Error al obtener el pool de conexiones".to_string(),
+        ));
+    }
+
+    let mut connection = conn.unwrap();
+
+    let user_exist = user.filter(id.eq(*user_id)).first::<User>(&mut connection);
+
+    if let Err(diesel::result::Error::NotFound) = user_exist {
+        return HttpResponse::NotFound().json(ApiResponse::<()>::error(
+            404,
+            "Usuario no encontrado".to_string(),
+        ));
+    } else if user_exist.is_err() {
+        return HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+            500,
+            "Error al buscar el usuario".to_string(),
+        ));
+    }
+
+    let result = diesel::update(user.filter(id.eq(*user_id)))
+        .set(active.eq(false))
+        .execute(&mut connection);
+
+    match result {
+        Ok(_) => HttpResponse::Ok().json(ApiResponse::<()>::success(
+            200,
+            "Usuario eliminado satisfactoriamente".to_string(),
+            (),
+        )),
+        Err(e) => {
+            println!("Error al eliminar el usuario: {:?}", e);
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                500,
+                "Error al eliminar el usuario".to_string(),
+            ))
+        }
+    }
+}

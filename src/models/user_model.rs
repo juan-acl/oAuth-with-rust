@@ -4,14 +4,16 @@ use serde::{Deserialize, Serialize};
 use validator::Validate;
 
 #[derive(Queryable, Serialize, Deserialize)]
+#[diesel(table_name = user)]
 pub struct User {
-    pub id: Option<i32>,
+    pub id: i32,
     pub name: String,
     pub lastname: String,
     pub email: String,
     pub address: String,
     pub phone_number: String,
     pub password: String,
+    pub active: bool,
 }
 
 #[derive(Queryable, Serialize, Deserialize, Insertable, Validate)]

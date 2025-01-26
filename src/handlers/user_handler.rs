@@ -8,7 +8,6 @@ use diesel::result::Error as DieselError;
 use diesel::{ExpressionMethods, RunQueryDsl};
 
 pub async fn get_all_users(pool: web::Data<DbPool>) -> impl Responder {
-    log::info!("Obteniendo todos los usuarios");
     let conn = pool.get();
     if conn.is_err() {
         return HttpResponse::InternalServerError().json(ApiResponse::<()>::error(

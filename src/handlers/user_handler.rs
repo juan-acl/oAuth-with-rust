@@ -1,5 +1,6 @@
-use crate::models::user_model::{NewUser, UpdateUser, User};
+use crate::models::user_model::{Login, NewUser, UpdateUser, User};
 use crate::schema::user::dsl::*;
+use crate::utils::jwt::create_token_session;
 use crate::utils::validator::validate_and_extract_errors;
 use crate::{db::db::DbPool, models::response_model::ApiResponse};
 use actix_web::{web, HttpResponse, Responder};
@@ -190,4 +191,33 @@ pub async fn update_user(
             ))
         }
     }
+}
+
+pub async fn sign_in(pool: web::Data<DbPool>, user_login: web::Json<Login>) -> impl Responder {
+    print!("{:?}", user_login);
+    if let Err(errors) = validate_and_extract_errors(&*user_login) {
+        return HttpResponse::BadRequest().json(ApiResponse::<()>::error(400, errors.join(", ")));
+    }
+
+    let conn = pool.get();
+
+    if conn.is_err() {
+        return HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+            500,
+            "Error al obtener el pool de conexiones".to_string(),
+        ));
+    }
+
+    let mut connection = conn.unwrap();
+    let user_login_clone = Login {
+        email: user_login.email.clone(),
+        password: user_login.password.clone(),
+    };
+
+    let token = create_token_session(60, user_login_clone);
+    return HttpResponse::Ok().json(ApiResponse {
+        code: 200,
+        message: "Usuario autenticado exitosamente".to_string(),
+        data: Some(token),
+    });
 }

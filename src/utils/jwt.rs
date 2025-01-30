@@ -1,33 +1,19 @@
-use std::{env, time::Duration};
-
-use crate::models::jwt_model::Claims;
-use actix_web::{web::Json, HttpResponse};
-use chrono::Utc;
+use crate::models::{jwt_model::Claims, user_model::Login};
+use chrono::{Duration, Utc};
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 
-use crate::schema::user;
-
-async fn create_token(time_expiration_min: i64, user: User) -> String {
+pub fn create_token_session(time_expiration_min: i64, user: Login) -> String {
     let header = Header::new(Algorithm::HS512);
-    let encoding_key = EncodingKey::from_secret(env::var("KEY_JWT".as_ref()));
+    let encoding_key = EncodingKey::from_secret("secret".as_ref());
 
-    let expiration = (Utc::now() + Duration::minutes(time_expiration_min)).timestamp() as usize;
-    let iat = Utc::now().timestamp() as usize;
+    let expiration = (Utc::now() + Duration::minutes(time_expiration_min)).timestamp() as u64;
+    let iat = Utc::now().timestamp() as u64;
 
     let my_claims = Claims {
-        exp: expiration as usize,
-        iat: iat as usize,
+        exp: expiration,
+        iat,
         user,
     };
 
-    encode(&header, &my_claims, &encoding_key);
-}
-
-async fn get_token_header(Json(user): Json<User>) -> HttpResponse {
-    let token = jwt_lib::get_jwt(user);
-
-    match token {
-        Ok(token) => HttpResponse::Ok().json(token),
-        Err(_) => HttpResponse::InternalServerError().finish(),
-    }
+    return encode(&header, &my_claims, &encoding_key).expect("error en el token");
 }

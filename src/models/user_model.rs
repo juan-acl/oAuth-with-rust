@@ -52,3 +52,9 @@ pub struct UpdateUser {
     pub password: Option<String>,
     pub active: Option<bool>,
 }
+
+#[derive(Deserialize, Validate, Serialize, Debug)]
+pub struct Login {
+    pub email: String,
+    pub password: String,
+}

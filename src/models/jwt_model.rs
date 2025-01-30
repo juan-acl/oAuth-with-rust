@@ -1,8 +1,9 @@
-use crate::models::user_model::User;
+use crate::models::user_model::Login;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Claims {
-    pub exp: unsize,
-    pub iat: unsize,
-    pub user: User,
+    pub exp: u64,
+    pub iat: u64,
+    pub user: Login,
 }

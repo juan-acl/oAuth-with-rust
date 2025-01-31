@@ -1,6 +1,7 @@
 use crate::models::session::Session;
 use crate::models::user_model::{Login, NewUser, UpdateUser, User};
 use crate::schema::session::dsl::session;
+use crate::schema::session::user_id as user_id_session;
 use crate::schema::user::dsl::*;
 use crate::utils::jwt::create_token_session;
 use crate::utils::validator::validate_and_extract_errors;
@@ -212,6 +213,18 @@ pub async fn sign_in(pool: web::Data<DbPool>, user_login: web::Json<Login>) -> i
 
     let mut connection = conn.unwrap();
 
+    let session_exist = session
+        .filter(user_id_session.eq(user_login.email.clone()))
+        .first::<Session>(&mut connection);
+
+    if session_exist.is_ok() {
+        return HttpResponse::Ok().json(ApiResponse {
+            code: 200,
+            message: "Sesión ya iniciada".to_string(),
+            data: Some(session_exist.unwrap().token),
+        });
+    }
+
     let user_login_clone = Login {
         email: user_login.email.clone(),
         password: user_login.password.clone(),
@@ -220,7 +233,8 @@ pub async fn sign_in(pool: web::Data<DbPool>, user_login: web::Json<Login>) -> i
     let token_created = create_token_session(60, user_login_clone);
 
     let insert_session = Session {
-        user_id: 1,
+        id: 0,
+        user_id: user_login.email.clone(),
         token: token_created.clone(),
         token_valid: true,
     };

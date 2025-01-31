@@ -3,7 +3,7 @@
 diesel::table! {
     session (id) {
         id -> Integer,
-        user_id -> Integer,
+        user_id -> Text,
         token -> Text,
         token_valid -> Bool,
     }

@@ -1,7 +1,7 @@
-use crate::models::session::Session;
+use crate::models::session::{Session, SessionData};
 use crate::models::user_model::{Login, NewUser, UpdateUser, User};
 use crate::schema::session::dsl::session;
-use crate::schema::session::user_id as user_id_session;
+use crate::schema::session::{token_valid, user_id as user_id_session};
 use crate::schema::user::dsl::*;
 use crate::utils::jwt::create_token_session;
 use crate::utils::validator::validate_and_extract_errors;
@@ -215,14 +215,27 @@ pub async fn sign_in(pool: web::Data<DbPool>, user_login: web::Json<Login>) -> i
 
     let session_exist = session
         .filter(user_id_session.eq(user_login.email.clone()))
-        .first::<Session>(&mut connection);
+        .first::<SessionData>(&mut connection);
 
     if session_exist.is_ok() {
-        return HttpResponse::Ok().json(ApiResponse {
-            code: 200,
-            message: "Sesión ya iniciada".to_string(),
-            data: Some(session_exist.unwrap().token),
-        });
+        let update_token_session = diesel::update(
+            session
+                .filter(user_id_session.eq(user_login.email.clone()))
+                .filter(token_valid.eq(true)),
+        )
+        .set(token_valid.eq(false))
+        .execute(&mut connection);
+
+        match update_token_session {
+            Ok(_) => (),
+            Err(e) => {
+                println!("Error al actualizar la sesión: {:?}", e);
+                return HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                    500,
+                    "Error al actualizar la sesión".to_string(),
+                ));
+            }
+        }
     }
 
     let user_login_clone = Login {
@@ -233,7 +246,6 @@ pub async fn sign_in(pool: web::Data<DbPool>, user_login: web::Json<Login>) -> i
     let token_created = create_token_session(60, user_login_clone);
 
     let insert_session = Session {
-        id: 0,
         user_id: user_login.email.clone(),
         token: token_created.clone(),
         token_valid: true,

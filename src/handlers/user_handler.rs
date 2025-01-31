@@ -1,4 +1,6 @@
+use crate::models::session::Session;
 use crate::models::user_model::{Login, NewUser, UpdateUser, User};
+use crate::schema::session::dsl::session;
 use crate::schema::user::dsl::*;
 use crate::utils::jwt::create_token_session;
 use crate::utils::validator::validate_and_extract_errors;
@@ -209,15 +211,36 @@ pub async fn sign_in(pool: web::Data<DbPool>, user_login: web::Json<Login>) -> i
     }
 
     let mut connection = conn.unwrap();
+
     let user_login_clone = Login {
         email: user_login.email.clone(),
         password: user_login.password.clone(),
     };
 
-    let token = create_token_session(60, user_login_clone);
-    return HttpResponse::Ok().json(ApiResponse {
-        code: 200,
-        message: "Usuario autenticado exitosamente".to_string(),
-        data: Some(token),
-    });
+    let token_created = create_token_session(60, user_login_clone);
+
+    let insert_session = Session {
+        user_id: 1,
+        token: token_created.clone(),
+        token_valid: true,
+    };
+
+    let result_session = diesel::insert_into(session)
+        .values(&insert_session)
+        .execute(&mut connection);
+
+    match result_session {
+        Ok(_) => HttpResponse::Ok().json(ApiResponse {
+            code: 200,
+            message: "Sesión creada exitosamente".to_string(),
+            data: Some(token_created),
+        }),
+        Err(e) => {
+            println!("Error al crear la sesión: {:?}", e);
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                500,
+                "Error al crear la sesión".to_string(),
+            ))
+        }
+    }
 }

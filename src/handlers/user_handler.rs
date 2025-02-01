@@ -3,6 +3,7 @@ use crate::models::user_model::{Login, NewUser, UpdateUser, User};
 use crate::schema::session::dsl::session;
 use crate::schema::session::{token_valid, user_id as user_id_session};
 use crate::schema::user::dsl::*;
+use crate::utils::bcrypt::{hash_password, verify_password};
 use crate::utils::jwt::create_token_session;
 use crate::utils::validator::validate_and_extract_errors;
 use crate::{db::db::DbPool, models::response_model::ApiResponse};
@@ -65,8 +66,13 @@ pub async fn create_user(pool: web::Data<DbPool>, new_user: web::Json<NewUser>) 
         ));
     }
 
+    let user_insert = NewUser {
+        password: hash_password(&new_user.password),
+        ..new_user.into_inner()
+    };
+
     let result = diesel::insert_into(user)
-        .values(new_user.into_inner())
+        .values(&user_insert)
         .execute(&mut connection);
 
     match result {
@@ -197,7 +203,6 @@ pub async fn update_user(
 }
 
 pub async fn sign_in(pool: web::Data<DbPool>, user_login: web::Json<Login>) -> impl Responder {
-    print!("{:?}", user_login);
     if let Err(errors) = validate_and_extract_errors(&*user_login) {
         return HttpResponse::BadRequest().json(ApiResponse::<()>::error(400, errors.join(", ")));
     }
@@ -212,6 +217,26 @@ pub async fn sign_in(pool: web::Data<DbPool>, user_login: web::Json<Login>) -> i
     }
 
     let mut connection = conn.unwrap();
+
+    let find_user = user
+        .filter(email.eq(user_login.email.clone()))
+        .first::<User>(&mut connection);
+
+    if find_user.is_err() {
+        return HttpResponse::NotFound().json(ApiResponse::<()>::error(
+            404,
+            "Usuario no encontrado".to_string(),
+        ));
+    }
+
+    let validate_password = verify_password(&user_login.password, &find_user.unwrap().password);
+
+    if !validate_password {
+        return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
+            400,
+            "Credenciales incorrectas.".to_string(),
+        ));
+    }
 
     let session_exist = session
         .filter(user_id_session.eq(user_login.email.clone()))

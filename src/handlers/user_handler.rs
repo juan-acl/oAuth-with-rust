@@ -219,7 +219,7 @@ pub async fn sign_in(pool: web::Data<DbPool>, user_login: web::Json<Login>) -> i
     let mut connection = conn.unwrap();
 
     let find_user = user
-        .filter(email.eq(user_login.email.clone()))
+        .filter(email.eq(&user_login.email))
         .first::<User>(&mut connection);
 
     if find_user.is_err() {

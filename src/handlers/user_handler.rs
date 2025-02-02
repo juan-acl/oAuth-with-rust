@@ -55,9 +55,8 @@ pub async fn create_user(pool: web::Data<DbPool>, new_user: web::Json<NewUser>) 
 
     let mut connection = conn.unwrap();
 
-    let user_exist: Result<Vec<User>, DieselError> = user
-        .filter(email.eq(new_user.email.clone()))
-        .load(&mut connection);
+    let user_exist: Result<Vec<User>, DieselError> =
+        user.filter(email.eq(&new_user.email)).load(&mut connection);
 
     if user_exist.is_ok() && user_exist.unwrap().len() > 0 {
         return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
@@ -239,13 +238,13 @@ pub async fn sign_in(pool: web::Data<DbPool>, user_login: web::Json<Login>) -> i
     }
 
     let session_exist = session
-        .filter(user_id_session.eq(user_login.email.clone()))
+        .filter(user_id_session.eq(&user_login.email))
         .first::<SessionData>(&mut connection);
 
     if session_exist.is_ok() {
         let update_token_session = diesel::update(
             session
-                .filter(user_id_session.eq(user_login.email.clone()))
+                .filter(user_id_session.eq(&user_login.email))
                 .filter(token_valid.eq(true)),
         )
         .set(token_valid.eq(false))

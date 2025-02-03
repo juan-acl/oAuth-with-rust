@@ -23,20 +23,18 @@ pub async fn get_all_users(pool: web::Data<DbPool>) -> impl Responder {
 
     let mut connection = conn.unwrap();
 
-    let results: Result<Vec<User>, DieselError> = user.load(&mut connection);
+    let results: Result<Vec<User>, DieselError> =
+        user.filter(active.eq(true)).load(&mut connection);
     match results {
         Ok(users) => HttpResponse::Ok().json(ApiResponse {
             code: 200,
             message: String::from("Usuarios obtenidos exitosamente"),
             data: Some(users),
         }),
-        Err(e) => {
-            println!("Error al obtener los usuarios: {:?}", e);
-            HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
-                500,
-                "Error al obtener los usuarios".to_string(),
-            ))
-        }
+        Err(_) => HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+            500,
+            "Error al obtener los usuarios".to_string(),
+        )),
     }
 }
 
@@ -80,13 +78,10 @@ pub async fn create_user(pool: web::Data<DbPool>, new_user: web::Json<NewUser>) 
             "Usuario creado satisfactoriamente".to_string(),
             (),
         )),
-        Err(e) => {
-            println!("Error al crear el usuario: {:?}", e);
-            HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
-                500,
-                "Error al crear el usuario".to_string(),
-            ))
-        }
+        Err(_) => HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+            500,
+            "Error al crear el usuario".to_string(),
+        )),
     }
 }
 
